@@ -1,0 +1,27 @@
+name: fetch-photos
+on:
+  push:
+    branches: [media-fetch]
+    paths: [photos.txt]
+permissions:
+  contents: write
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download free-license Unsplash photos
+        run: |
+          mkdir -p photos
+          while read name id rest; do
+            [ -z "$name" ] && continue
+            curl -sfL -o "photos/$name.jpg" "https://images.unsplash.com/$id?ixlib=rb-4.1.0&fm=jpg&q=85&w=2400"
+            echo "$name $(stat -c %s photos/$name.jpg)"
+          done < photos.txt
+      - name: Commit
+        run: |
+          git config user.name "photo-fetch-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add photos
+          git commit -m "Add fetched photos" || exit 0
+          git push
